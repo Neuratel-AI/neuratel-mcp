@@ -1,6 +1,6 @@
 [project]
 name = "neuratelai-mcp"
-version = "0.1.2"
+version = "0.1.3"
 description = "Neuratel MCP Server — connect AI assistants to Neuratel Studio"
 readme = "README.md"
 license = { text = "MIT" }

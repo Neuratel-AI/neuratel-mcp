@@ -1,3 +1,8 @@
 """Neuratel MCP Server."""
 
-__version__ = "0.1.1"
+try:
+    from importlib.metadata import version as _version
+
+    __version__ = _version("neuratelai-mcp")
+except Exception:
+    __version__ = "unknown"
