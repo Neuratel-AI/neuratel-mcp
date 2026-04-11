@@ -12,37 +12,40 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
 
     @mcp.tool(name="get_balance")
     async def get_balance() -> dict[str, Any]:
-        """Get the current account balance and credit status.
+        """Check the current account balance and credit status.
 
-        Use this before making calls or starting campaigns to verify there
-        are sufficient credits. A balance check is good practice before any
-        operation that incurs telephony costs.
+        Returns the available balance in the account's billing currency
+        (set in organization settings — defaults to USD).
 
-        Returns: balance in USD and cents, whether credits are available,
-                 and the account currency.
+        Always check this before:
+        - Making outbound calls (make_call)
+        - Starting campaigns (start_campaign)
+        - Any operation that incurs telephony or AI costs
+
+        A zero or negative balance means calls will fail. The has_credits
+        field is a quick boolean check for sufficient funds.
         """
         r = await client.get("/billing/balance")
         r.raise_for_status()
         d = r.json()
         return {
-            "balance_usd": d.get("balance_dollars"),
+            "balance": d.get("balance_dollars"),
             "balance_cents": d.get("balance_cents"),
-            "has_credits": (d.get("balance_cents", 0) or 0) > 0,
+            "has_credits": d.get("has_credits", False),
             "currency": d.get("currency", "USD"),
         }
 
     @mcp.tool(name="get_usage")
     async def get_usage(days: int = 30) -> dict[str, Any]:
-        """Get usage summary for the last N days.
+        """Get usage summary for a time period.
 
-        Use this to see how many calls were made, total minutes used,
-        and total cost over a time period. Useful for reporting and
-        capacity planning.
+        Returns aggregate stats: how many calls were made, total minutes
+        consumed, and total amount billed. Useful for cost monitoring,
+        capacity planning, and usage reporting.
 
         Args:
-            days: Number of days to look back (default: 30)
-
-        Returns: call count, total minutes, total cost, and time period.
+            days: Look-back period in days (default 30, max 365).
+                  Use 1 for today's usage, 7 for the past week.
         """
         r = await client.get("/billing/usage", params={"days": days})
         r.raise_for_status()

@@ -19,21 +19,42 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
         max_concurrent_calls: int = 5,
         scheduled_start: str | None = None,
     ) -> dict[str, Any]:
-        """Create a new outbound calling campaign.
+        """Create an outbound calling campaign to dial a list of contacts.
 
-        Use this to set up automated outbound calls to a list of contacts.
-        Prerequisites: an agent_id (from list_agents) and a phone_number_id
-        (from list_numbers) for caller ID.
+        A campaign automates outbound calling at scale — it takes an agent,
+        a phone number, and a contact list, then systematically dials each
+        contact using the AI agent to handle the conversation.
+
+        ## How campaigns work
+
+        1. Create the campaign (this tool) — defines who calls, from what number
+        2. Start the campaign (start_campaign) — begins dialing contacts
+        3. The system calls contacts in parallel (up to max_concurrent_calls)
+        4. Each call is handled by the agent autonomously
+        5. Monitor progress with get_campaign
+        6. Pause/stop at any time with pause_campaign or stop_campaign
+
+        ## Prerequisites
+
+        - An agent configured for outbound calls (use create_agent)
+        - A phone number to call from (use list_numbers)
+        - A call list with contacts (upload via the dashboard, or pass call_list_id)
+        - Sufficient account balance for the expected call volume
+
+        ## Concurrency
+
+        max_concurrent_calls controls how many calls run simultaneously.
+        Start low (3-5) to validate agent performance before scaling up.
+        Higher concurrency = faster completion but more simultaneous cost.
 
         Args:
-            name: Display name for the campaign
-            agent_id: The agent that will handle all calls in this campaign
-            phone_number_id: Phone number UUID to use as caller ID (from list_numbers)
-            call_list_id: Optional ID of the call list containing contacts to dial
-            max_concurrent_calls: How many calls to run simultaneously (default: 5)
-            scheduled_start: ISO 8601 datetime to auto-start (e.g. "2026-04-15T09:00:00Z")
-
-        Returns: campaign id, name, status, and configuration summary.
+            name: Campaign display name (e.g. "Q2 Renewal Outreach")
+            agent_id: The agent that handles every call in this campaign
+            phone_number_id: Phone number UUID for caller ID (from list_numbers)
+            call_list_id: Contact list ID (contains numbers + variables to dial)
+            max_concurrent_calls: Simultaneous call limit (default 5)
+            scheduled_start: ISO 8601 datetime to auto-start (e.g. "2026-04-15T09:00:00Z").
+                             Omit to start manually with start_campaign.
         """
         body: dict[str, Any] = {
             "name": name,
@@ -59,12 +80,13 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
 
     @mcp.tool(name="list_campaigns")
     async def list_campaigns(limit: int = 20) -> list[dict[str, Any]]:
-        """List all outbound campaigns with their current status.
+        """List all outbound campaigns with current status and progress.
 
-        Use this to see running campaigns, check which are active vs paused,
-        or find a campaign_id for other operations.
+        Shows each campaign's state (draft, running, paused, completed,
+        stopped) and progress (total contacts vs completed calls).
 
-        Returns: list of campaigns with id, name, status, progress, and agent.
+        Use this to find campaign IDs for start/pause/stop operations,
+        or to monitor overall campaign health at a glance.
         """
         r = await client.get("/campaigns", params={"limit": min(limit, 100), "skip": 0})
         r.raise_for_status()
@@ -84,12 +106,13 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
 
     @mcp.tool(name="get_campaign")
     async def get_campaign(campaign_id: str) -> dict[str, Any]:
-        """Get full details and current progress for a specific campaign.
+        """Get full details and real-time progress for a campaign.
 
-        Use this after starting a campaign to check progress:
-        how many calls completed, how many failed, current status.
+        Returns the complete campaign configuration, execution stats
+        (calls completed, failed, remaining), and performance data.
 
-        Returns: campaign configuration, progress stats, and performance summary.
+        Use this to monitor a running campaign, debug why calls are
+        failing, or review results after completion.
         """
         r = await client.get(f"/campaigns/{campaign_id}")
         r.raise_for_status()
@@ -97,15 +120,15 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
 
     @mcp.tool(name="start_campaign")
     async def start_campaign(campaign_id: str) -> dict[str, Any]:
-        """Start an outbound calling campaign.
+        """Start a campaign — begins dialing contacts immediately.
 
-        Use this to begin dialing contacts in a campaign that is in "draft"
-        or "paused" status. The campaign will begin placing calls immediately.
+        The campaign must be in "draft" or "paused" status. Once started,
+        the system begins placing calls up to the configured concurrency
+        limit. Calls continue until all contacts are reached or the
+        campaign is paused/stopped.
 
-        ⚠️ COST WARNING: Starts placing real phone calls at scale.
-        Only use when explicitly requested.
-
-        Returns: campaign id and new status ("running").
+        Check get_balance before starting — insufficient credits will
+        cause calls to fail mid-campaign.
         """
         r = await client.post(f"/campaigns/{campaign_id}/start")
         r.raise_for_status()
@@ -113,12 +136,14 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
 
     @mcp.tool(name="pause_campaign")
     async def pause_campaign(campaign_id: str) -> dict[str, Any]:
-        """Pause a running campaign — calls in progress finish, no new calls start.
+        """Pause a running campaign — no new calls, active calls finish.
 
-        Use this to temporarily halt a campaign without losing progress.
-        The campaign can be resumed with start_campaign.
+        Calls already in progress will complete naturally. No new calls
+        are placed. The campaign retains its progress and can be resumed
+        with start_campaign.
 
-        Returns: campaign id and new status ("paused").
+        Use this to throttle costs, investigate quality issues, or
+        pause during off-hours before resuming later.
         """
         r = await client.post(f"/campaigns/{campaign_id}/pause")
         r.raise_for_status()
@@ -126,14 +151,13 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
 
     @mcp.tool(name="stop_campaign")
     async def stop_campaign(campaign_id: str) -> dict[str, Any]:
-        """Stop and terminate a campaign permanently.
+        """Stop a campaign permanently — remaining contacts will not be called.
 
-        Use this to end a campaign entirely. Unlike pause, stopping a campaign
-        cannot be easily reversed — you would need to create a new campaign.
+        Unlike pause, stopping is final. The campaign cannot be restarted.
+        Any contacts not yet called are abandoned. Calls in progress will
+        finish, but the campaign is marked as stopped.
 
-        ⚠️ WARNING: Terminates the campaign. Remaining contacts will not be called.
-
-        Returns: campaign id and new status ("stopped").
+        Use pause_campaign instead if you might want to resume later.
         """
         r = await client.post(f"/campaigns/{campaign_id}/stop")
         r.raise_for_status()

@@ -12,13 +12,19 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
 
     @mcp.tool(name="list_numbers")
     async def list_numbers() -> list[dict[str, Any]]:
-        """List all phone numbers in your organization.
+        """List all phone numbers provisioned in your organization.
 
-        Use this to find a number_id before making calls or assigning a number
-        to an agent. Shows which agent each number is currently assigned to.
+        Phone numbers are the entry point for inbound calls and the caller ID
+        for outbound calls. Each number can be assigned to one agent at a time.
 
-        Returns: list of numbers with id, phone number, display name,
-                 assigned agent_id, and active status.
+        Use this to:
+        - Find a number_id for make_call or create_campaign
+        - See which agent each number routes to
+        - Check number capabilities (voice, SMS, etc.)
+        - Find unassigned numbers available for new agents
+
+        A number with agent_id=null is not answering inbound calls. Assign
+        an agent with assign_number to start routing calls to it.
         """
         r = await client.get("/numbers", params={"limit": 100, "skip": 0})
         r.raise_for_status()
@@ -37,16 +43,22 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
 
     @mcp.tool(name="assign_number")
     async def assign_number(phone_number_id: str, agent_id: str) -> dict[str, Any]:
-        """Assign a phone number to a voice AI agent.
+        """Route a phone number's inbound calls to an AI agent.
 
-        After assigning, inbound calls to this number will be handled by the
-        specified agent. Use list_numbers to find the phone_number_id and
-        list_agents to find the agent_id.
+        After assignment, every inbound call to this number is automatically
+        answered by the specified agent. The agent uses its configured
+        first_message, instructions, voice, and all other settings.
 
-        ⚠️ WARNING: This immediately changes call routing. Any existing assignment
-        on this number will be replaced.
+        If the number was previously assigned to a different agent, the
+        assignment is replaced — calls immediately start routing to the
+        new agent.
 
-        Returns: confirmation with phone_number_id and assigned agent_id.
+        This only affects inbound calls. For outbound calls, you specify
+        the agent and number separately in make_call.
+
+        Args:
+            phone_number_id: The number to configure (from list_numbers)
+            agent_id: The agent that will answer calls (from list_agents)
         """
         r = await client.post(
             f"/numbers/{phone_number_id}/assign",
@@ -61,13 +73,14 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
 
     @mcp.tool(name="unassign_number")
     async def unassign_number(phone_number_id: str) -> dict[str, Any]:
-        """Remove the agent assignment from a phone number.
+        """Remove the agent from a phone number — inbound calls stop being answered.
 
-        After unassigning, inbound calls to this number will not be answered
-        by any agent. Use this before reassigning to a different agent or
-        when retiring a number from active use.
+        After unassigning, calls to this number will not be picked up by any
+        agent. The number still exists and can be reassigned later.
 
-        Returns: confirmation with phone_number_id and unassigned status.
+        Use this when retiring a number, switching agents (unassign then
+        assign_number to the new agent), or temporarily taking a number
+        offline for maintenance.
         """
         r = await client.post(f"/numbers/{phone_number_id}/unassign")
         r.raise_for_status()

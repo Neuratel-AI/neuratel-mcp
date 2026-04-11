@@ -14,11 +14,13 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
     async def list_knowledge_bases() -> list[dict[str, Any]]:
         """List all knowledge bases in your organization.
 
-        Use this to see existing knowledge sources before creating new ones
-        or before attaching one to an agent. Shows each KB's name, type,
-        status, and which agents it's attached to.
+        Knowledge bases are documents, FAQs, and web content that agents
+        can search during calls using RAG (retrieval-augmented generation).
+        When a caller asks a question, the agent searches attached knowledge
+        bases for relevant information before responding.
 
-        Returns: list of knowledge bases with id, name, type, status, and source.
+        Use this to see what knowledge exists before creating duplicates,
+        or to find knowledge_base_ids for attach_knowledge_to_agent.
         """
         r = await client.get("/knowledge-base", params={"limit": 100, "skip": 0})
         r.raise_for_status()
@@ -43,18 +45,25 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
     ) -> dict[str, Any]:
         """Create a knowledge base from plain text content.
 
-        Use this to add FAQs, product information, policies, scripts,
-        or any text-based content that the agent should know about.
-        After creating, use attach_knowledge_to_agent to connect it.
+        The text is immediately chunked and indexed for RAG retrieval.
+        After creating, use attach_knowledge_to_agent to connect it to
+        an agent — the agent will then search this content during calls.
+
+        Best for: FAQs, product specs, policies, scripts, pricing tables,
+        troubleshooting guides, or any structured text content.
+
+        Tips for good knowledge base content:
+        - Use clear headings and Q&A format for best retrieval
+        - Keep each topic self-contained (the system retrieves chunks)
+        - Include the exact phrases callers would use, not just jargon
+        - Max 500KB of text per knowledge base
 
         Args:
-            name: Display name for this knowledge base (e.g. "FAQ - Returns Policy")
-            text: The actual text content to store and index
-            description: Optional description of what this knowledge covers
-
-        Returns: knowledge base id, name, and processing status.
+            name: Display name (e.g. "Returns Policy FAQ", "Product Catalog")
+            text: The actual content to index. Plain text or markdown.
+            description: What this knowledge covers (helps with organization)
         """
-        body: dict[str, Any] = {"name": name, "text": text}
+        body: dict[str, Any] = {"name": name, "content": text}
         if description:
             body["description"] = description
 
@@ -74,18 +83,23 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
         url: str,
         description: str = "",
     ) -> dict[str, Any]:
-        """Create a knowledge base by fetching and indexing a URL.
+        """Create a knowledge base by scraping and indexing a web page.
 
-        Use this to add web pages, documentation, or online resources as
-        knowledge sources. The platform will fetch and index the content.
-        After creating, use attach_knowledge_to_agent to connect it.
+        Fetches the URL, extracts the content (handles JavaScript-rendered
+        pages), converts to clean text, chunks it, and indexes for RAG.
+        Processing happens asynchronously — check the status field.
+
+        Best for: product documentation, help center articles, pricing
+        pages, company info, or any publicly accessible web content.
+
+        The URL must be publicly accessible. Status will be "processing"
+        initially, then "ready" when indexing completes (usually <30 seconds),
+        or "error" if the page couldn't be fetched.
 
         Args:
-            name: Display name for this knowledge base (e.g. "Product Docs")
-            url: The URL to fetch and index (must be publicly accessible)
-            description: Optional description of what this knowledge covers
-
-        Returns: knowledge base id, name, source URL, and processing status.
+            name: Display name (e.g. "Product Documentation", "Pricing Page")
+            url: Public URL to scrape (https://docs.example.com/faq)
+            description: What this knowledge covers
         """
         body: dict[str, Any] = {"name": name, "url": url}
         if description:
@@ -107,20 +121,24 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
         agent_id: str,
         knowledge_base_ids: list[str],
     ) -> dict[str, Any]:
-        """Connect one or more knowledge bases to a voice AI agent.
+        """Connect knowledge bases to an agent for RAG-powered conversations.
 
-        After attaching, the agent will use these knowledge bases to answer
-        questions during calls via RAG (retrieval-augmented generation).
-        Use list_knowledge_bases to find knowledge_base_ids.
+        Once attached, the agent automatically searches these knowledge bases
+        when callers ask questions. The agent retrieves relevant chunks and
+        uses them to give accurate, grounded answers instead of hallucinating.
 
-        ⚠️ NOTE: This replaces all currently attached knowledge bases.
-        Include all IDs you want attached, not just the new ones.
+        This REPLACES all current attachments — pass the complete list of
+        knowledge base IDs you want attached, not just new additions. To
+        add a new KB without removing existing ones, include all current
+        IDs plus the new one.
+
+        Multiple knowledge bases can be attached to the same agent. The
+        system searches across all of them and returns the most relevant
+        chunks regardless of which KB they came from.
 
         Args:
-            agent_id: The agent to connect knowledge bases to
-            knowledge_base_ids: List of knowledge base IDs to attach
-
-        Returns: confirmation with agent_id and list of attached KB IDs.
+            agent_id: The agent to connect knowledge to
+            knowledge_base_ids: Complete list of KB IDs to attach
         """
         r = await client.put(
             f"/knowledge-base/agent/{agent_id}",

@@ -8,12 +8,13 @@ from unittest.mock import patch
 import pytest
 
 EXPECTED_TOOLS = {
-    # Agents (5)
+    # Agents (6)
     "create_agent",
     "list_agents",
     "get_agent",
     "update_agent",
     "delete_agent",
+    "duplicate_agent",
     # Calls (5)
     "make_call",
     "list_calls",
@@ -59,10 +60,10 @@ async def tools(mcp_server):
 
 
 async def test_tool_count(tools):
-    """Server must expose exactly 27 tools."""
+    """Server must expose exactly 28 tools."""
     names = {t.name for t in tools}
-    assert len(names) == 27, (
-        f"Expected 27 tools, got {len(names)}.\n"
+    assert len(names) == 28, (
+        f"Expected 28 tools, got {len(names)}.\n"
         f"Extra: {names - EXPECTED_TOOLS}\n"
         f"Missing: {EXPECTED_TOOLS - names}"
     )

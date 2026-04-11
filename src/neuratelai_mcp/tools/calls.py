@@ -17,24 +17,59 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
         number_id: str,
         dynamic_variables: dict[str, Any] | None = None,
         caller_id_name: str | None = None,
+        caller_id_number: str | None = None,
+        agent_override: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        """Place a single outbound phone call using a voice AI agent.
+        """Place an outbound phone call using a voice AI agent.
 
-        Prerequisites: you need an agent_id (from list_agents) and a number_id
-        (from list_numbers). Use get_balance first to verify sufficient credits.
+        This connects a real phone call between your AI agent and the
+        destination number. The agent handles the entire conversation
+        autonomously using its configured instructions and voice.
 
-        ⚠️ COST WARNING: Places a real phone call which incurs telephony and AI costs.
-        Only use when explicitly requested by the user.
+        ## Prerequisites
+
+        1. An agent must exist (use create_agent or list_agents to find one)
+        2. A phone number must be provisioned (use list_numbers to find one)
+        3. Account must have sufficient balance (use get_balance to check)
+
+        ## Minimum required
+
+        Just three fields: which agent talks, who to call, and which number
+        to call from. Everything else is optional.
+
+        ## Per-call customization
+
+        Two powerful ways to customize each call without changing the agent:
+
+        **dynamic_variables** — inject values into the agent's prompt template.
+        If the agent's instructions contain `{{customer_name}}`, pass:
+        `dynamic_variables={"customer_name": "Alice"}`
+
+        **agent_override** — deep-merge config changes over the saved agent
+        for this call only. The agent itself is not modified. Use this to:
+        - Change the prompt for a specific call
+        - Use a different voice or language
+        - Adjust temperature for a sensitive conversation
+        - Override any config section (brain, voice, transcriber, etc.)
+
+        Example override:
+        ```json
+        {"brain": {"instructions": "Special prompt for this call only"}}
+        ```
 
         Args:
-            agent_id: ID of the agent to handle the call
-            to_number: Phone number to call in E.164 format (e.g. +12125551234)
-            number_id: ID of your phone number to use as caller ID (from list_numbers)
-            dynamic_variables: Optional variables injected into the agent's prompt
-                               (e.g. {"customer_name": "Alice", "account_id": "123"})
-            caller_id_name: Optional display name shown to the recipient
+            agent_id: The agent that will handle this call
+            to_number: Destination in E.164 format (+12125551234)
+            number_id: Your phone number ID to call from (from list_numbers)
+            dynamic_variables: Template variables for the agent's prompt
+            caller_id_name: Display name shown to the recipient (max 50 chars)
+            caller_id_number: Override caller ID number (E.164). Defaults to
+                              the number_id's phone number if not set.
+            agent_override: Per-call config overrides. Same structure as the
+                            agent config from get_agent. Deep-merged over the
+                            saved agent — only affects this call.
 
-        Returns: call_id for tracking, status, caller and callee numbers.
+        Returns: call_id for tracking via get_call, success status, and numbers.
         """
         body: dict[str, Any] = {
             "agent_id": agent_id,
@@ -45,15 +80,21 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
             body["dynamic_variables"] = dynamic_variables
         if caller_id_name:
             body["caller_id_name"] = caller_id_name
+        if caller_id_number:
+            body["caller_id_number"] = caller_id_number
+        if agent_override:
+            body["agent_override"] = agent_override
 
         r = await client.post("/calls/outbound", json=body)
         r.raise_for_status()
         d = r.json()
         return {
             "call_id": d.get("call_id"),
-            "status": d.get("success"),
+            "success": d.get("success"),
             "to_number": d.get("to_number"),
             "from_number": d.get("from_number"),
+            "agent_id": str(d.get("agent_id", "")),
+            "error": d.get("error"),
         }
 
     @mcp.tool(name="list_calls")
@@ -64,15 +105,17 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
     ) -> list[dict[str, Any]]:
         """List recent calls with a summary of each.
 
-        Use this to see call history, check outcomes, or find a call_id
-        before using get_call for full details including the transcript.
+        Returns call history sorted by most recent first. Each entry includes
+        status, duration, and outcome — but NOT the transcript. Use get_call
+        with a specific call_id to read the full transcript.
+
+        Filter by call_type to see only inbound, outbound, or browser calls.
+        Filter by agent_id to see calls handled by a specific agent.
 
         Args:
-            limit: Number of calls to return (default 10, max 100)
-            call_type: Filter by "outbound", "inbound", or "webrtc"
-            agent_id: Filter to calls handled by a specific agent
-
-        Returns: list of calls with id, status, duration, phone numbers, and agent.
+            limit: How many calls to return (1-100, default 10)
+            call_type: Filter: "outbound", "inbound", or "webrtc"
+            agent_id: Filter to calls handled by this agent
         """
         params: dict[str, Any] = {"limit": min(limit, 100), "skip": 0}
         if call_type:
@@ -100,20 +143,21 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
 
     @mcp.tool(name="get_call")
     async def get_call(call_id: str) -> dict[str, Any]:
-        """Get full details for a call including the complete transcript and recording.
+        """Get full details for a specific call including the complete transcript.
 
-        Use this to answer questions like: "What did the caller say?",
-        "Was the agent successful?", "What was discussed on this call?",
-        "Can I see the transcript?".
+        This is the primary tool for post-call analysis. Returns everything:
+        the full conversation transcript (who said what, in order), call
+        summary, recording URL, success evaluation, topics discussed, and
+        any data extracted during the call.
 
-        This is the only tool you need for post-call analysis — it includes
-        the transcript as a list of {role, text} turns, a call summary,
-        and the success evaluation result.
+        The transcript is a list of turns: [{"role": "agent", "text": "..."},
+        {"role": "user", "text": "..."}, ...] — making it easy to review
+        exactly what happened on the call.
 
-        Returns: id, status, duration, phone numbers, full transcript,
-                 recording_url, call summary, and success evaluation.
+        Use this when asked: "What happened on that call?", "What did the
+        caller say?", "Was the agent successful?", "Show me the transcript."
         """
-        r = await client.get(f"/calls/{call_id}", params={"include": "full"})
+        r = await client.get(f"/calls/{call_id}")
         r.raise_for_status()
         d = r.json()
         recording = d.get("recording") or {}
@@ -138,15 +182,17 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
 
     @mcp.tool(name="hangup_call")
     async def hangup_call(call_id: str) -> dict[str, Any]:
-        """Terminate an active call immediately.
+        """Immediately terminate an active call.
 
-        Use this to end a call that is currently in progress. The call_id
-        can be found from get_active_calls or list_calls.
+        Disconnects all participants instantly — the caller hears the line
+        drop. There is no graceful goodbye; the call just ends.
 
-        ⚠️ WARNING: Immediately disconnects all participants. Use only when
-        explicitly requested or in clear emergency situations.
+        Use get_active_calls first to find the call_id of a live call.
+        Only works on calls that are currently in progress.
 
-        Returns: confirmation with the call_id and terminated status.
+        Use this sparingly — for emergencies, stuck calls, or when
+        explicitly asked to end a call. In most cases, the agent's own
+        timeout and hangup logic will end calls naturally.
         """
         r = await client.post(f"/calls/{call_id}/hangup")
         r.raise_for_status()
@@ -154,14 +200,15 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
 
     @mcp.tool(name="get_active_calls")
     async def get_active_calls() -> dict[str, Any]:
-        """Get all calls currently in progress.
+        """Get all calls happening right now across your organization.
 
-        Use this for real-time monitoring — see who is on a call right now,
-        which agents are active, and how long each call has been running.
-        Also shows call type (inbound/outbound/webrtc) and participant count.
+        Returns real-time data: which agents are on calls, how long each
+        call has been running, caller numbers, and connection status.
 
-        Returns: list of active calls with id, type, duration, phone number,
-                 agent, and connection status.
+        Use this for live monitoring, to find a call_id for hangup_call,
+        or to check system load before starting a campaign.
+
+        Returns empty list when no calls are active — that's normal.
         """
         r = await client.get("/calls/active")
         r.raise_for_status()

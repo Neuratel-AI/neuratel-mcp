@@ -16,29 +16,45 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
         url: str,
         events: list[str] | None = None,
     ) -> dict[str, Any]:
-        """Create a webhook to receive real-time event notifications.
+        """Create a webhook to receive real-time notifications for call events.
 
-        Use this to set up HTTP callbacks for call events. Common event types:
-        - "session_report" — fires when a call ends with full transcript
-        - "call_ended" — fires immediately when a call disconnects
-        - "recording_ready" — fires when recording is available
-        - "analysis_complete" — fires when post-call AI analysis finishes
+        Webhooks send HTTP POST requests to your URL when events occur.
+        Use them to trigger workflows, update CRMs, log call outcomes,
+        or build real-time dashboards.
 
-        ⚠️ The signing secret is returned ONCE — store it securely.
-        Use it to verify webhook requests with HMAC-SHA256.
+        ## Available event types (dotted notation)
+
+        Call lifecycle:
+        - "call.started" — call connected, conversation beginning
+        - "call.ended" — call disconnected, final data available
+        - "call.ringing" — outbound call is ringing
+        - "call.answered" — outbound call was picked up
+        - "call.failed" — call could not connect
+        - "call.transferred" — call was transferred to another number
+
+        Transcript events:
+        - "transcript.partial" — real-time partial transcript update
+        - "transcript.final" — final transcript segment
+        - "transcript.ready" — complete transcript available
+
+        Recording:
+        - "recording.ready" — call recording is available for download
+
+        Pass an empty list or omit events to subscribe to ALL event types.
+
+        The signing secret is returned ONCE in the response. Save it
+        immediately — use it to verify webhook requests via HMAC-SHA256
+        to ensure they're genuinely from Neuratel.
 
         Args:
-            name: Display name for this webhook (required)
-            url: Your HTTPS endpoint to receive events
-            events: Event types to subscribe to
-                (default: session_report, call_ended, recording_ready)
-
-        Returns: webhook id, secret (shown once), and subscribed event types.
+            name: Display name for this webhook (e.g. "CRM Integration")
+            url: Your HTTPS endpoint to receive events. Must use HTTPS.
+            events: Event types to subscribe to (dotted format). Empty = all.
         """
         body: dict[str, Any] = {
             "name": name,
             "url": url,
-            "events": events or ["session_report", "call_ended", "recording_ready"],
+            "events": events or [],
         }
 
         r = await client.post("/webhooks", json=body)
@@ -55,13 +71,16 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
 
     @mcp.tool(name="list_webhooks")
     async def list_webhooks() -> list[dict[str, Any]]:
-        """List all active webhook subscriptions.
+        """List all configured webhook subscriptions.
 
-        Use this to see what webhooks are configured, check delivery health,
-        or find a webhook_id before updating or deleting one.
+        Shows each webhook's URL, subscribed events, active status, and
+        delivery health (failure count, last successful delivery).
 
-        Returns: list of webhooks with id, URL, event types, active status,
-                 and delivery health (failure count, last delivery).
+        Use this to audit integrations, check for delivery failures,
+        or verify that the right events are being captured.
+
+        A high failure_count indicates the endpoint is down or rejecting
+        requests — investigate the URL or check your server logs.
         """
         r = await client.get("/webhooks", params={"limit": 100, "skip": 0})
         r.raise_for_status()
