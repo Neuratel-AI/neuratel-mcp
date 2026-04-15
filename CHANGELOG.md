@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.3 (2026-04-15)
+## 0.1.4 (2026-04-15)
 
 ### Agent tools — full platform sync
 
