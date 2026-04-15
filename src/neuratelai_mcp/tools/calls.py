@@ -2,10 +2,26 @@
 
 from __future__ import annotations
 
+import json
+import re
 from typing import Any
 
 import httpx
 from fastmcp import FastMCP
+
+
+def _extract_template_vars(obj: Any) -> set[str]:
+    """Recursively find all {{variable}} placeholders in any string field."""
+    found: set[str] = set()
+    if isinstance(obj, str):
+        found.update(re.findall(r"\{\{(\w+)\}\}", obj))
+    elif isinstance(obj, dict):
+        for v in obj.values():
+            found.update(_extract_template_vars(v))
+    elif isinstance(obj, list):
+        for item in obj:
+            found.update(_extract_template_vars(item))
+    return found
 
 
 def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
@@ -71,6 +87,23 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
 
         Returns: call_id for tracking via get_call, success status, and numbers.
         """
+        # Pre-flight: fetch the agent and find all {{variable}} placeholders.
+        # Fail early with a clear message instead of a raw 400 from the API.
+        agent_r = await client.get(f"/agents/{agent_id}")
+        if agent_r.status_code == 200:
+            agent_data = agent_r.json()
+            required_vars = _extract_template_vars(agent_data)
+            provided_vars = set(dynamic_variables.keys()) if dynamic_variables else set()
+            missing = required_vars - provided_vars
+            if missing:
+                missing_list = ", ".join(sorted(missing))
+                example = {v: f"<{v}>" for v in sorted(missing)}
+                raise ValueError(
+                    f"This agent requires dynamic_variables that were not provided. "
+                    f"Missing: {missing_list}. "
+                    f"Call again with: dynamic_variables={json.dumps(example)}"
+                )
+
         body: dict[str, Any] = {
             "agent_id": agent_id,
             "to_number": to_number,
