@@ -132,7 +132,10 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
             "analytics": {
                 "recording": {"enabled": True},
                 "summary": {"enabled": True},
-                "success_evaluation": {"enabled": True, "criteria": "Did the agent resolve the issue?"}
+                "success_evaluation": {
+                    "enabled": True,
+                    "criteria": "Did the agent resolve the issue?",
+                },
             },
             "interruption": {
                 "enabled": True,
@@ -234,7 +237,10 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
             "name": d.get("name"),
             "status": d.get("status"),
             "brain": f"{brain_resp.get('provider')}/{brain_resp.get('model')}",
-            "voice": f"{voice_resp.get('provider')}/{voice_resp.get('voice_id') or voice_resp.get('voice', '')}",
+            "voice": (
+                f"{voice_resp.get('provider')}/"
+                f"{voice_resp.get('voice_id') or voice_resp.get('voice', '')}"
+            ),
             "language": (d.get("transcriber") or {}).get("language"),
             "created_at": d.get("created_at"),
         }
@@ -378,7 +384,10 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
             "analytics": {
                 "recording": {"enabled": True},
                 "summary": {"enabled": True},
-                "success_evaluation": {"enabled": True, "criteria": "Did the agent resolve the issue?"}
+                "success_evaluation": {
+                    "enabled": True,
+                    "criteria": "Did the agent resolve the issue?",
+                },
             },
             "tts_text_transforms": ["filter_markdown", "filter_emoji"],
             "preemptive_generation": False,
@@ -477,7 +486,10 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
             "status": d.get("status"),
             "is_active": d.get("is_active"),
             "brain": f"{brain_resp.get('provider')}/{brain_resp.get('model')}",
-            "voice": f"{voice_resp.get('provider')}/{voice_resp.get('voice_id') or voice_resp.get('voice', '')}",
+            "voice": (
+                f"{voice_resp.get('provider')}/"
+                f"{voice_resp.get('voice_id') or voice_resp.get('voice', '')}"
+            ),
             "updated_at": d.get("updated_at"),
         }
 
