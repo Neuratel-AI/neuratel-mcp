@@ -161,9 +161,12 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
         if tags:
             body["tags"] = tags
 
-        # Brain — always include (has instructions); named params override config
+        # Brain — always include (has instructions); named params override config.
+        # provider is required by backend discriminated union — default to groq
+        # (the platform default) if not explicitly set.
         brain: dict[str, Any] = {**body.get("brain", {})}
         brain["instructions"] = instructions
+        brain.setdefault("provider", brain_provider or "groq")
         if brain_provider is not None:
             brain["provider"] = brain_provider
         if brain_model is not None:
@@ -411,7 +414,9 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
         if tags is not None:
             body["tags"] = tags
 
-        # Brain
+        # Brain — provider is required by backend discriminated union.
+        # If user sets brain fields without provider, default to "groq" only
+        # as a fallback; recommend always passing brain_provider explicitly.
         brain_fields: dict[str, Any] = {}
         if instructions is not None:
             brain_fields["instructions"] = instructions
@@ -424,6 +429,8 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
         if max_tokens is not None:
             brain_fields["max_completion_tokens"] = max_tokens
         if brain_fields:
+            if "provider" not in brain_fields:
+                brain_fields["provider"] = "groq"
             body["brain"] = {**body.get("brain", {}), **brain_fields}
 
         # Voice — provider required when setting voice fields
