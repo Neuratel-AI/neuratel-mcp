@@ -47,7 +47,7 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
         Only `name` and `instructions` are required. All provider defaults are
         applied server-side — if you don't specify brain/voice/transcriber, the
         platform picks its current production defaults (Groq Llama-4-Scout brain,
-        Cartesia sonic-3 voice, OpenAI gpt-4o-mini-transcribe transcriber).
+        Cartesia sonic-3 voice with Connie, Deepgram nova-3 transcriber).
 
         ## Brain (LLM) providers
 
@@ -71,7 +71,7 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
 
         **cartesia** — default, best quality (~37ms latency)
         - voice_model: "sonic-3"
-        - voice_id: "f786b574-daa5-4673-aa0c-cbe3e8534c02" (default)
+        - voice_id: "8d8ce8c9-44a4-46c4-b10f-9a927b99a853" (default, Connie)
         - voice_speed: float or preset ("fastest","fast","normal","slow","slowest")
 
         **elevenlabs** — most expressive (~71ms latency)
