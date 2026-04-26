@@ -118,7 +118,7 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
         if agent_override:
             body["agent_override"] = agent_override
 
-        r = await client.post("/calls/outbound", json=body)
+        r = await client.post("/voice-sessions/outbound", json=body)
         r.raise_for_status()
         d = r.json()
         return {
@@ -133,39 +133,46 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
     @mcp.tool(name="list_calls")
     async def list_calls(
         limit: int = 10,
-        call_type: str | None = None,
+        channel: str | None = None,
+        direction: str | None = None,
         agent_id: str | None = None,
     ) -> list[dict[str, Any]]:
-        """List recent calls with a summary of each.
+        """List recent voice sessions with a summary of each.
 
         Returns call history sorted by most recent first. Each entry includes
         status, duration, and outcome — but NOT the transcript. Use get_call
         with a specific call_id to read the full transcript.
 
-        Filter by call_type to see only inbound, outbound, or browser calls.
-        Filter by agent_id to see calls handled by a specific agent.
+        Filter by `channel` (transport: phone, web, whatsapp_voice) and/or
+        `direction` (inbound vs outbound, NULL for web). Filter by agent_id
+        to see calls handled by a specific agent.
 
         Args:
             limit: How many calls to return (1-100, default 10)
-            call_type: Filter: "outbound", "inbound", or "webrtc"
+            channel: Transport filter: "phone" | "web" | "whatsapp_voice"
+            direction: "inbound" or "outbound" (NULL for web sessions)
             agent_id: Filter to calls handled by this agent
         """
         params: dict[str, Any] = {"limit": min(limit, 100), "skip": 0}
-        if call_type:
-            params["call_type"] = call_type
+        if channel:
+            params["channel"] = channel
+        if direction:
+            params["direction"] = direction
         if agent_id:
             params["agentIdAny"] = agent_id
 
-        r = await client.get("/calls", params=params)
+        r = await client.get("/voice-sessions", params=params)
         r.raise_for_status()
         results = r.json().get("results", [])
         return [
             {
                 "id": c.get("id"),
                 "status": c.get("status"),
-                "call_type": c.get("call_type"),
+                "channel": c.get("channel"),
+                "direction": c.get("direction"),
                 "duration_seconds": c.get("duration_seconds"),
-                "phone_number": c.get("phone_number"),
+                "from_number": c.get("from_number"),
+                "to_number": c.get("to_number"),
                 "agent_id": c.get("agent_id"),
                 "started_at": c.get("started_at"),
                 "ended_at": c.get("ended_at"),
@@ -176,7 +183,7 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
 
     @mcp.tool(name="get_call")
     async def get_call(call_id: str) -> dict[str, Any]:
-        """Get full details for a specific call including the complete transcript.
+        """Get full details for a specific voice session including transcript.
 
         This is the primary tool for post-call analysis. Returns everything:
         the full conversation transcript (who said what, in order), call
@@ -190,7 +197,7 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
         Use this when asked: "What happened on that call?", "What did the
         caller say?", "Was the agent successful?", "Show me the transcript."
         """
-        r = await client.get(f"/calls/{call_id}", params={"include": "full"})
+        r = await client.get(f"/voice-sessions/{call_id}", params={"include": "full"})
         r.raise_for_status()
         d = r.json()
         recording = d.get("recording") or {}
@@ -198,9 +205,11 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
         return {
             "id": d.get("id"),
             "status": d.get("status"),
-            "call_type": d.get("call_type"),
+            "channel": d.get("channel"),
+            "direction": d.get("direction"),
             "duration_seconds": d.get("duration_seconds"),
-            "phone_number": d.get("phone_number"),
+            "from_number": d.get("from_number"),
+            "to_number": d.get("to_number"),
             "caller_id": d.get("caller_id"),
             "agent_id": d.get("agent_id"),
             "started_at": d.get("started_at"),
@@ -215,7 +224,7 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
 
     @mcp.tool(name="hangup_call")
     async def hangup_call(call_id: str) -> dict[str, Any]:
-        """Immediately terminate an active call.
+        """Immediately terminate an active voice session.
 
         Disconnects all participants instantly — the caller hears the line
         drop. There is no graceful goodbye; the call just ends.
@@ -227,13 +236,13 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
         explicitly asked to end a call. In most cases, the agent's own
         timeout and hangup logic will end calls naturally.
         """
-        r = await client.post(f"/calls/{call_id}/hangup")
+        r = await client.post(f"/voice-sessions/{call_id}/hangup")
         r.raise_for_status()
         return {"call_id": call_id, "status": "terminated"}
 
     @mcp.tool(name="get_active_calls")
     async def get_active_calls() -> dict[str, Any]:
-        """Get all calls happening right now across your organization.
+        """Get all voice sessions happening right now across your organization.
 
         Returns real-time data: which agents are on calls, how long each
         call has been running, caller numbers, and connection status.
@@ -243,7 +252,7 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
 
         Returns empty list when no calls are active — that's normal.
         """
-        r = await client.get("/calls/active")
+        r = await client.get("/voice-sessions/active")
         r.raise_for_status()
         d = r.json()
         return {
@@ -251,7 +260,8 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
             "calls": [
                 {
                     "id": c.get("id"),
-                    "type": c.get("type"),
+                    "channel": c.get("channel"),
+                    "direction": c.get("direction"),
                     "phone_number": c.get("phone_number"),
                     "agent_name": c.get("agent_name"),
                     "agent_id": c.get("agent_id"),
