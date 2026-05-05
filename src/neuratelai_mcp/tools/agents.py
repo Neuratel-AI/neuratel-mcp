@@ -48,9 +48,10 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
         applied server-side — if you don't specify brain/voice/transcriber, the
         platform picks its current production defaults (Phantom brain, Cartesia
         sonic-3 voice with Fatima — Arabic, Soniox stt-rt-v4 transcriber with
-        EN+AR language hints — pairs natively with Fatima for code-switching). Behavior defaults: turn_detection.mode=stt (Soniox owns
-        endpointing), preemptive_generation=true, recording on with 30-day
-        retention, post-call analysis on (PassFail rubric).
+        EN+AR language hints — pairs natively with Fatima for code-switching).
+        Behavior defaults: turn_detection.mode=stt (Soniox owns endpointing),
+        preemptive_generation=true, recording on with 30-day retention,
+        post-call analysis on (PassFail rubric).
 
         ## Brain (LLM) providers
 
@@ -74,7 +75,8 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
 
         **cartesia** — default, best quality (~37ms latency)
         - voice_model: "sonic-3"
-        - voice_id: "731ace69-ee17-41bc-8c6f-665c9f1db95c" (default, Fatima — Arabic; pairs with default Soniox EN+AR hints)
+        - voice_id: "731ace69-ee17-41bc-8c6f-665c9f1db95c" (default, Fatima — Arabic;
+          pairs with default Soniox EN+AR hints)
         - voice_speed: float or preset ("fastest","fast","normal","slow","slowest")
 
         **elevenlabs** — most expressive (~71ms latency)
