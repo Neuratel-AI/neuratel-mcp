@@ -87,13 +87,24 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
 
         ## Transcriber (STT) providers
 
-        **openai** — default, GPT-4o powered (~138ms latency)
+        **deepgram** — default, best accuracy for telephony (~83ms latency)
+        - transcriber_model: "nova-3" (recommended), "nova-3-medical"
+        - language: BCP-47 e.g. "en-US", "ar", "multi" (auto-detect)
+
+        **openai** — GPT-4o powered (~138ms latency)
         - transcriber_model: "gpt-4o-mini-transcribe"
         - language: ISO code e.g. "en", "ar", "es"
 
-        **deepgram** — best accuracy for telephony (~83ms latency)
-        - transcriber_model: "nova-3" (recommended), "nova-3-medical"
-        - language: BCP-47 e.g. "en-US", "ar", "multi" (auto-detect)
+        **soniox** — Soniox v4, semantic end-of-utterance built in
+        - transcriber_model: "stt-rt-v4" (single unified model, 60+ languages)
+        - Use config dict for: language_hints (e.g. ["en", "ar"]),
+          language_hints_strict, enable_speaker_diarization,
+          enable_language_identification (default True)
+        - Requires per-org soniox_api_key (BYOK)
+
+        **phantom** — Neuratel native STT
+        - transcriber_model: "phantom-stt-v1"
+        - language: "auto" (auto-detect)
 
         ## Advanced config
 

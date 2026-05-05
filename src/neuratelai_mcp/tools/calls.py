@@ -11,10 +11,17 @@ from fastmcp import FastMCP
 
 
 def _extract_template_vars(obj: Any) -> set[str]:
-    """Recursively find all {{variable}} placeholders in any string field."""
+    """Find all {{variable}} placeholders that the caller must supply.
+
+    Excludes the reserved `system__*` namespace — those are auto-injected by
+    the platform (system__org_id, system__channel, system__time_utc, etc.) and
+    must not be passed in dynamic_variables.
+    """
     found: set[str] = set()
     if isinstance(obj, str):
-        found.update(re.findall(r"\{\{(\w+)\}\}", obj))
+        for match in re.findall(r"\{\{(\w+)\}\}", obj):
+            if not match.startswith("system__"):
+                found.add(match)
     elif isinstance(obj, dict):
         for v in obj.values():
             found.update(_extract_template_vars(v))
@@ -201,7 +208,6 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
         r.raise_for_status()
         d = r.json()
         recording = d.get("recording") or {}
-        success_eval = d.get("success_evaluation") or {}
         return {
             "id": d.get("id"),
             "status": d.get("status"),
@@ -217,7 +223,15 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
             "transcript": d.get("conversation", []),
             "recording_url": recording.get("recording_url"),
             "summary": d.get("call_summary"),
-            "success": success_eval.get("success"),
+            # Post-call analysis (flat columns on session_reports — see backend
+            # app/domains/calls/models.py:70-77 + logs_service.py:675-678).
+            # analysis_status is "pending" | "completed" | "failed"; the four
+            # eval fields are populated only when analysis_status == "completed".
+            "analysis_status": d.get("analysis_status"),
+            "user_sentiment": d.get("user_sentiment"),
+            "user_sentiment_score": d.get("user_sentiment_score"),
+            "call_successful": d.get("call_successful"),
+            "call_successful_rationale": d.get("call_successful_rationale"),
             "topics_discussed": d.get("topics_discussed", []),
             "extracted_data": d.get("extracted_data"),
         }

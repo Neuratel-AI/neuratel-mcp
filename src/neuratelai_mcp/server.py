@@ -1,7 +1,7 @@
 """
 Neuratel MCP Server
 
-27 hand-crafted tools covering every agentic workflow on Neuratel Studio:
+28 hand-crafted tools covering every agentic workflow on Neuratel Studio:
 agents, calls, campaigns, phone numbers, knowledge bases, billing, webhooks.
 
 Usage:
@@ -36,7 +36,7 @@ def _require_api_key() -> str:
 
 
 def create_server() -> FastMCP:
-    """Build and return the configured MCP server with all 27 tools."""
+    """Build and return the configured MCP server with all 28 tools."""
     api_key = _require_api_key()
     client = make_client(api_key, _BASE_URL)
 
