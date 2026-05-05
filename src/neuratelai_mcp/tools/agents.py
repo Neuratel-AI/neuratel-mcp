@@ -537,7 +537,9 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
         """
         r = await client.get("/agents/templates")
         r.raise_for_status()
-        return r.json()
+        # Backend returns a bare list; FastMCP requires a dict for structured
+        # content. Wrap so the tool result is always {"templates": [...]}.
+        return {"templates": r.json()}
 
     @mcp.tool(name="get_agent_required_variables")
     async def get_agent_required_variables(agent_id: str) -> dict[str, Any]:

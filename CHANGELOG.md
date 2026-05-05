@@ -7,7 +7,7 @@
 **New tool modules** (18 tools):
 - `dnc.py` (6 tools): `dnc_check`, `dnc_list_entries`, `dnc_add_entry`, `dnc_delete_entry`, `dnc_get_settings`, `dnc_update_settings`. Wraps the platform DNC directory shipped on the backend 2026-04-27. Settings uses canonical backend names (`protection_enabled`, `auto_add_inbound_optouts`).
 - `conversations.py` (8 tools): `list_conversations`, `get_conversation`, `list_conversation_messages`, `send_conversation_message`, `mark_conversation_read`, `get_conversation_timeline`, `update_conversation_variables`, `get_chat_analytics`. Wraps `/v1/conversations/*` (the unified SMS / WhatsApp / voice inbox shipped during the comms taxonomy unification 2026-04-26). `send_conversation_message` uses `body` field (matches `ConversationSendRequest`).
-- `variables.py` (1 tool): `get_system_variables_catalog` — calls `/v1/variables/system-catalog` so AI assistants can distinguish auto-injected `system__*` variables from user-supplied `dynamic_variables`.
+- `variables.py` (1 tool): `get_system_variables_catalog` — returns the 21-entry `system__*` catalog (mirrored locally from `backend/shared-schemas/shared_schemas/system_variables.py`) so AI assistants can distinguish auto-injected vars from user-supplied `dynamic_variables`. Local snapshot rather than a backend fetch because the underlying `/v1/variables/system-catalog` endpoint is currently session-only on the backend (uses `get_current_user`, not `get_current_user_or_api_key`) — backend fix tracked separately.
 - `analytics.py` (1 tool): `get_combined_analytics` — wraps `/v1/analytics/dashboard` (combined voice + chat KPIs).
 
 **`agents.py` additions** (2 tools):
@@ -20,6 +20,7 @@
 - `calls.py` `get_call` return now surfaces flat session_report columns: `analysis_status` (pending|completed|failed), `user_sentiment`, `user_sentiment_score`, `call_successful`, `call_successful_rationale`. These were dropped by the previous return shape.
 - `calls.py` `make_call` pre-flight: `_extract_template_vars` now skips `system__*` placeholders. Previously false-positive warned about platform-injected vars (`system__org_id`, `system__channel`, etc.) when scanning agent prompts.
 - `server.py:4,39`: tool count docstrings 27 → 28 (now 46), and resource list refreshed.
+- `agents.py:540` `list_agent_templates`: backend returns a bare list; FastMCP's structured-content protocol requires dict|None. Wrapped as `{"templates": [...]}`. Caught by an end-to-end smoke against staging-api during the v0.2.0 audit pass.
 
 ### Infra
 
