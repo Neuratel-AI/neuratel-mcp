@@ -135,3 +135,56 @@ def test_server_requires_api_key():
 
         with pytest.raises(RuntimeError, match="NEURATEL_API_KEY"):
             create_server()
+
+
+# ── Parameter-schema spot checks (catch param-name drift in new tools) ────
+
+
+async def test_dnc_check_takes_phone_param(tools):
+    """dnc_check must accept `phone` (matches backend /v1/dnc/check?phone=...)."""
+    tool = next(t for t in tools if t.name == "dnc_check")
+    props = tool.parameters.get("properties", {})
+    assert "phone" in props, f"dnc_check must accept phone, got: {list(props)}"
+
+
+async def test_dnc_update_settings_uses_canonical_field_names(tools):
+    """dnc_update_settings field names must match backend DNCSettingsRequest.
+
+    Catches accidental drift to obvious-but-wrong shorthand like `enabled` /
+    `auto_opt_out_detection`. Backend canonical names per shared schemas:
+    `protection_enabled` and `auto_add_inbound_optouts`.
+    """
+    tool = next(t for t in tools if t.name == "dnc_update_settings")
+    props = set(tool.parameters.get("properties", {}).keys())
+    assert "protection_enabled" in props, f"got: {props}"
+    assert "auto_add_inbound_optouts" in props, f"got: {props}"
+
+
+async def test_send_conversation_message_uses_body_field(tools):
+    """send_conversation_message must use `body` (matches backend ConversationSendRequest).
+
+    Catches the wrong-field bug class — backend's required field is `body`,
+    not `text` (which several tools/SDK methods initially used by guesswork).
+    """
+    tool = next(t for t in tools if t.name == "send_conversation_message")
+    props = set(tool.parameters.get("properties", {}).keys())
+    assert "body" in props, f"got: {props}"
+    required = set(tool.parameters.get("required", []))
+    assert "body" in required, f"body must be required, got required: {required}"
+
+
+async def test_make_call_skips_system_vars_in_preflight(tools):
+    """make_call's pre-flight extractor must not warn on {{system__*}} placeholders.
+
+    Regression guard for the false-positive fix in calls.py:_extract_template_vars.
+    The system catalog (system__org_id, system__channel, system__time_utc, ...)
+    is auto-injected by the platform; users never supply those.
+    """
+    from neuratelai_mcp.tools.calls import _extract_template_vars
+
+    found = _extract_template_vars(
+        "Hello {{customer_name}}, calling on {{system__channel}} for {{system__org_name}}"
+    )
+    assert "customer_name" in found
+    assert "system__channel" not in found
+    assert "system__org_name" not in found
