@@ -8,13 +8,15 @@ from unittest.mock import patch
 import pytest
 
 EXPECTED_TOOLS = {
-    # Agents (6)
+    # Agents (8)
     "create_agent",
     "list_agents",
     "get_agent",
     "update_agent",
     "delete_agent",
     "duplicate_agent",
+    "list_agent_templates",
+    "get_agent_required_variables",
     # Calls (5)
     "make_call",
     "list_calls",
@@ -43,6 +45,26 @@ EXPECTED_TOOLS = {
     # Webhooks (2)
     "create_webhook",
     "list_webhooks",
+    # Conversations (8)
+    "list_conversations",
+    "get_conversation",
+    "list_conversation_messages",
+    "send_conversation_message",
+    "mark_conversation_read",
+    "get_conversation_timeline",
+    "update_conversation_variables",
+    "get_chat_analytics",
+    # DNC (6)
+    "dnc_check",
+    "dnc_list_entries",
+    "dnc_add_entry",
+    "dnc_delete_entry",
+    "dnc_get_settings",
+    "dnc_update_settings",
+    # Variables (1)
+    "get_system_variables_catalog",
+    # Analytics (1)
+    "get_combined_analytics",
 }
 
 
@@ -60,10 +82,10 @@ async def tools(mcp_server):
 
 
 async def test_tool_count(tools):
-    """Server must expose exactly 28 tools."""
+    """Server must expose exactly 46 tools."""
     names = {t.name for t in tools}
-    assert len(names) == 28, (
-        f"Expected 28 tools, got {len(names)}.\n"
+    assert len(names) == 46, (
+        f"Expected 46 tools, got {len(names)}.\n"
         f"Extra: {names - EXPECTED_TOOLS}\n"
         f"Missing: {EXPECTED_TOOLS - names}"
     )

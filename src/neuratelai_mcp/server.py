@@ -1,8 +1,10 @@
 """
 Neuratel MCP Server
 
-28 hand-crafted tools covering every agentic workflow on Neuratel Studio:
-agents, calls, campaigns, phone numbers, knowledge bases, billing, webhooks.
+46 hand-crafted tools covering every agentic workflow on Neuratel Studio:
+agents (incl. templates + required variables), voice sessions, conversations
+(SMS / WhatsApp), campaigns, phone numbers, knowledge bases, billing,
+webhooks, DNC directory, system variable catalog, combined analytics.
 
 Usage:
     NEURATEL_API_KEY=nk_live_... uvx neuratel-mcp
@@ -20,7 +22,19 @@ import os
 from fastmcp import FastMCP
 
 from ._client import make_client
-from .tools import agents, billing, calls, campaigns, knowledge, numbers, webhooks
+from .tools import (
+    agents,
+    analytics,
+    billing,
+    calls,
+    campaigns,
+    conversations,
+    dnc,
+    knowledge,
+    numbers,
+    variables,
+    webhooks,
+)
 
 _BASE_URL = os.environ.get("NEURATEL_BASE_URL", "https://api.neuratel.ai/v1")
 
@@ -36,7 +50,7 @@ def _require_api_key() -> str:
 
 
 def create_server() -> FastMCP:
-    """Build and return the configured MCP server with all 28 tools."""
+    """Build and return the configured MCP server with all 46 tools."""
     api_key = _require_api_key()
     client = make_client(api_key, _BASE_URL)
 
@@ -60,6 +74,10 @@ def create_server() -> FastMCP:
     knowledge.register(mcp, client)
     billing.register(mcp, client)
     webhooks.register(mcp, client)
+    conversations.register(mcp, client)
+    dnc.register(mcp, client)
+    variables.register(mcp, client)
+    analytics.register(mcp, client)
 
     return mcp
 

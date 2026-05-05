@@ -526,6 +526,35 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
         r.raise_for_status()
         return {"deleted": True, "agent_id": agent_id}
 
+    @mcp.tool(name="list_agent_templates")
+    async def list_agent_templates() -> dict[str, Any]:
+        """List the platform's pre-built agent templates.
+
+        Returns the read-only catalog of template configurations the platform
+        ships — useful as starting points before customising via create_agent.
+        Each template includes a name, description, and full agent config
+        block you can deep-merge with your own overrides.
+        """
+        r = await client.get("/agents/templates")
+        r.raise_for_status()
+        return r.json()
+
+    @mcp.tool(name="get_agent_required_variables")
+    async def get_agent_required_variables(agent_id: str) -> dict[str, Any]:
+        """List the {{variable}} placeholders an agent needs at call time.
+
+        Returns the names (and where possible, sources/categories) of every
+        template variable the agent's prompt references — split into:
+        - system_variables: platform-injected (`system__*`) — never supply these
+        - dynamic_variables: caller-supplied at make_call / inbound webhook time
+
+        Use this before placing an outbound call to verify the dynamic_variables
+        payload covers every required name. Saves a round-trip vs trial-and-error.
+        """
+        r = await client.get(f"/agents/{agent_id}/required-variables")
+        r.raise_for_status()
+        return r.json()
+
     @mcp.tool(name="duplicate_agent")
     async def duplicate_agent(
         agent_id: str,
