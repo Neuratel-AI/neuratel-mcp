@@ -29,9 +29,7 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
         return r.json()
 
     @mcp.tool(name="dnc_list_entries")
-    async def dnc_list_entries(
-        source: str | None = None, limit: int = 100
-    ) -> dict[str, Any]:
+    async def dnc_list_entries(source: str | None = None, limit: int = 100) -> dict[str, Any]:
         """List DNC entries visible to your organization.
 
         Returns both your own org_upload entries and any platform-managed
@@ -50,9 +48,7 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
         return r.json()
 
     @mcp.tool(name="dnc_add_entry")
-    async def dnc_add_entry(
-        phone: str, reason: str | None = None
-    ) -> dict[str, Any]:
+    async def dnc_add_entry(phone: str, reason: str | None = None) -> dict[str, Any]:
         """Add a number to your organization's DNC list.
 
         Once added, all subsequent outbound calls (manual or campaign) to

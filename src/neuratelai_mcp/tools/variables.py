@@ -41,9 +41,7 @@ _SYSTEM_VARIABLE_CATALOG: list[dict[str, Any]] = [
         _ALL,
     ),
     _entry("system__agent_name", "Display name of the current agent.", _ALL),
-    _entry(
-        "system__org_name", "Display name of the organization that owns this agent.", _ALL
-    ),
+    _entry("system__org_name", "Display name of the organization that owns this agent.", _ALL),
     _entry("system__org_id", "UUID of the organization that owns this agent.", _ALL),
     _entry(
         "system__caller_id",

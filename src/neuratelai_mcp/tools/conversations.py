@@ -67,9 +67,7 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
             params["since"] = since
         if before:
             params["before"] = before
-        r = await client.get(
-            f"/conversations/{conversation_id}/messages", params=params
-        )
+        r = await client.get(f"/conversations/{conversation_id}/messages", params=params)
         r.raise_for_status()
         return r.json()
 
@@ -96,9 +94,7 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
             payload["media_urls"] = media_urls
         if client_temp_id:
             payload["client_temp_id"] = client_temp_id
-        r = await client.post(
-            f"/conversations/{conversation_id}/messages", json=payload
-        )
+        r = await client.post(f"/conversations/{conversation_id}/messages", json=payload)
         r.raise_for_status()
         return r.json()
 
@@ -126,9 +122,7 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
             params["since"] = since
         if before:
             params["before"] = before
-        r = await client.get(
-            f"/conversations/{conversation_id}/timeline", params=params
-        )
+        r = await client.get(f"/conversations/{conversation_id}/timeline", params=params)
         r.raise_for_status()
         return r.json()
 
@@ -151,9 +145,7 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
                      (default), merges into the existing dict.
         """
         body = {"dynamic_variables": dynamic_variables, "replace": replace}
-        r = await client.patch(
-            f"/conversations/{conversation_id}/dynamic_variables", json=body
-        )
+        r = await client.patch(f"/conversations/{conversation_id}/dynamic_variables", json=body)
         r.raise_for_status()
         return r.json()
 
