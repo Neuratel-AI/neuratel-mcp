@@ -46,12 +46,15 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
 
         Only `name` and `instructions` are required. All provider defaults are
         applied server-side — if you don't specify brain/voice/transcriber, the
-        platform picks its current production defaults (Groq Llama-4-Scout brain,
-        Cartesia sonic-3 voice with Connie, Deepgram nova-3 transcriber).
+        platform picks its current production defaults (Phantom brain, Cartesia
+        sonic-3 voice with Connie, Soniox stt-rt-v4 transcriber with EN+AR
+        language hints). Behavior defaults: turn_detection.mode=stt (Soniox owns
+        endpointing), preemptive_generation=true, recording on with 30-day
+        retention, post-call analysis on (PassFail rubric).
 
         ## Brain (LLM) providers
 
-        **phantom** — Neuratel AI (recommended, ~178ms TTFT)
+        **phantom** — default, Neuratel AI (~178ms TTFT)
         - model: "phantom"
 
         **groq** — Groq fast inference (~443ms TTFT)
@@ -87,20 +90,20 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
 
         ## Transcriber (STT) providers
 
-        **deepgram** — default, best accuracy for telephony (~83ms latency)
+        **soniox** — default, Soniox v4 with semantic end-of-utterance built in
+        - transcriber_model: "stt-rt-v4" (single unified model, 60+ languages)
+        - Default language_hints: ["en", "ar"], language_hints_strict: true
+        - When transcriber.provider="soniox", the worker auto-routes
+          turn_detection.mode to "stt" (Soniox owns endpointing)
+        - Requires per-org soniox_api_key (BYOK)
+
+        **deepgram** — best accuracy for telephony-only English (~83ms latency)
         - transcriber_model: "nova-3" (recommended), "nova-3-medical"
         - language: BCP-47 e.g. "en-US", "ar", "multi" (auto-detect)
 
         **openai** — GPT-4o powered (~138ms latency)
         - transcriber_model: "gpt-4o-mini-transcribe"
         - language: ISO code e.g. "en", "ar", "es"
-
-        **soniox** — Soniox v4, semantic end-of-utterance built in
-        - transcriber_model: "stt-rt-v4" (single unified model, 60+ languages)
-        - Use config dict for: language_hints (e.g. ["en", "ar"]),
-          language_hints_strict, enable_speaker_diarization,
-          enable_language_identification (default True)
-        - Requires per-org soniox_api_key (BYOK)
 
         **phantom** — Neuratel native STT
         - transcriber_model: "phantom-stt-v1"
