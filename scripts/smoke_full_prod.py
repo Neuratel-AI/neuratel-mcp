@@ -60,13 +60,16 @@ async def run() -> None:
 
     # 1. create_agent
     try:
-        r = await call("create_agent", {
-            "name": f"smoke-{UID}",
-            "instructions": "You are a smoke test agent. Say hello and hang up.",
-            "description": "AUTO-GENERATED SMOKE TEST — safe to delete",
-            "first_message": "Hello, this is a test call. Goodbye!",
-            "tags": ["smoke-test", "auto-delete"],
-        })
+        r = await call(
+            "create_agent",
+            {
+                "name": f"smoke-{UID}",
+                "instructions": "You are a smoke test agent. Say hello and hang up.",
+                "description": "AUTO-GENERATED SMOKE TEST — safe to delete",
+                "first_message": "Hello, this is a test call. Goodbye!",
+                "tags": ["smoke-test", "auto-delete"],
+            },
+        )
         agent_id = r.get("id", "")
         if not agent_id:
             raise ValueError(f"No agent_id in response: {r}")
@@ -117,10 +120,13 @@ async def run() -> None:
     # 6. update_agent
     if CREATED.get("agent"):
         try:
-            r = await call("update_agent", {
-                "agent_id": CREATED["agent"],
-                "description": "UPDATED by smoke test",
-            })
+            r = await call(
+                "update_agent",
+                {
+                    "agent_id": CREATED["agent"],
+                    "description": "UPDATED by smoke test",
+                },
+            )
             _ok(f"update_agent → updated_at={r.get('updated_at', '?')[:19]}")
         except Exception as e:
             _fail("update_agent", str(e))
@@ -130,10 +136,13 @@ async def run() -> None:
     # 7. duplicate_agent
     if CREATED.get("agent"):
         try:
-            r = await call("duplicate_agent", {
-                "agent_id": CREATED["agent"],
-                "new_name": f"smoke-clone-{UID}",
-            })
+            r = await call(
+                "duplicate_agent",
+                {
+                    "agent_id": CREATED["agent"],
+                    "new_name": f"smoke-clone-{UID}",
+                },
+            )
             clone_id = r.get("id", "")
             if clone_id:
                 CREATED["agent_clone"] = clone_id
@@ -162,10 +171,13 @@ async def run() -> None:
     # 9. assign_number
     if CREATED.get("number_id") and CREATED.get("agent"):
         try:
-            r = await call("assign_number", {
-                "phone_number_id": CREATED["number_id"],
-                "agent_id": CREATED["agent"],
-            })
+            r = await call(
+                "assign_number",
+                {
+                    "phone_number_id": CREATED["number_id"],
+                    "agent_id": CREATED["agent"],
+                },
+            )
             _ok(f"assign_number → status={r.get('status')}")
         except Exception as e:
             _fail("assign_number", str(e))
@@ -179,11 +191,14 @@ async def run() -> None:
 
     # 10. add_knowledge_from_text
     try:
-        r = await call("add_knowledge_from_text", {
-            "name": f"smoke-kb-text-{UID}",
-            "text": "Q: Is this a test? A: Yes, this is an automated smoke test.",
-            "description": "AUTO-GENERATED — safe to delete",
-        })
+        r = await call(
+            "add_knowledge_from_text",
+            {
+                "name": f"smoke-kb-text-{UID}",
+                "text": "Q: Is this a test? A: Yes, this is an automated smoke test.",
+                "description": "AUTO-GENERATED — safe to delete",
+            },
+        )
         kb_id = r.get("id", "")
         if kb_id:
             CREATED["kb_text"] = kb_id
@@ -193,11 +208,14 @@ async def run() -> None:
 
     # 11. add_knowledge_from_url
     try:
-        r = await call("add_knowledge_from_url", {
-            "name": f"smoke-kb-url-{UID}",
-            "url": "https://neuratel.ai",
-            "description": "AUTO-GENERATED — safe to delete",
-        })
+        r = await call(
+            "add_knowledge_from_url",
+            {
+                "name": f"smoke-kb-url-{UID}",
+                "url": "https://neuratel.ai",
+                "description": "AUTO-GENERATED — safe to delete",
+            },
+        )
         kb_url_id = r.get("id", "")
         if kb_url_id:
             CREATED["kb_url"] = kb_url_id
@@ -215,10 +233,13 @@ async def run() -> None:
     # 13. attach_knowledge_to_agent
     if CREATED.get("agent") and CREATED.get("kb_text"):
         try:
-            r = await call("attach_knowledge_to_agent", {
-                "agent_id": CREATED["agent"],
-                "knowledge_base_ids": [CREATED["kb_text"]],
-            })
+            r = await call(
+                "attach_knowledge_to_agent",
+                {
+                    "agent_id": CREATED["agent"],
+                    "knowledge_base_ids": [CREATED["kb_text"]],
+                },
+            )
             _ok(f"attach_knowledge_to_agent → status={r.get('status')}")
         except Exception as e:
             _fail("attach_knowledge_to_agent", str(e))
@@ -251,11 +272,14 @@ async def run() -> None:
 
     # 16. create_webhook
     try:
-        r = await call("create_webhook", {
-            "name": f"smoke-wh-{UID}",
-            "url": "https://httpbin.org/post",
-            "events": ["call.ended", "call.failed"],
-        })
+        r = await call(
+            "create_webhook",
+            {
+                "name": f"smoke-wh-{UID}",
+                "url": "https://httpbin.org/post",
+                "events": ["call.ended", "call.failed"],
+            },
+        )
         wh_id = r.get("id", "")
         if wh_id:
             CREATED["webhook"] = wh_id
@@ -285,8 +309,8 @@ async def run() -> None:
     # 19. dnc_get_settings
     try:
         r = await call("dnc_get_settings")
-        prot = r.get('protection_enabled')
-        auto = r.get('auto_add_inbound_optouts')
+        prot = r.get("protection_enabled")
+        auto = r.get("auto_add_inbound_optouts")
         _ok(f"dnc_get_settings → protection={prot}, auto_add={auto}")
     except Exception as e:
         _fail("dnc_get_settings", str(e))
@@ -302,10 +326,13 @@ async def run() -> None:
 
     # 21. dnc_add_entry
     try:
-        r = await call("dnc_add_entry", {
-            "phone": "+12125551234",
-            "reason": "Automated smoke test — safe to remove",
-        })
+        r = await call(
+            "dnc_add_entry",
+            {
+                "phone": "+12125551234",
+                "reason": "Automated smoke test — safe to remove",
+            },
+        )
         entry_id = r.get("id", "")
         if entry_id:
             CREATED["dnc_entry"] = entry_id
@@ -316,9 +343,12 @@ async def run() -> None:
     # 22. dnc_update_settings
     try:
         current = await call("dnc_get_settings")
-        r = await call("dnc_update_settings", {
-            "protection_enabled": current.get("protection_enabled", True),
-        })
+        r = await call(
+            "dnc_update_settings",
+            {
+                "protection_enabled": current.get("protection_enabled", True),
+            },
+        )
         _ok(f"dnc_update_settings → protection={r.get('protection_enabled')}")
     except Exception as e:
         _fail("dnc_update_settings", str(e))
@@ -352,10 +382,13 @@ async def run() -> None:
     # 25. list_conversation_messages
     if CREATED.get("conversation_id"):
         try:
-            r = await call("list_conversation_messages", {
-                "conversation_id": CREATED["conversation_id"],
-                "limit": 5,
-            })
+            r = await call(
+                "list_conversation_messages",
+                {
+                    "conversation_id": CREATED["conversation_id"],
+                    "limit": 5,
+                },
+            )
             msgs = r.get("results", r) if isinstance(r, dict) else r
             count = len(msgs) if isinstance(msgs, list) else "?"
             _ok(f"list_conversation_messages → {count} messages")
@@ -367,10 +400,13 @@ async def run() -> None:
     # 26. send_conversation_message
     if CREATED.get("conversation_id"):
         try:
-            r = await call("send_conversation_message", {
-                "conversation_id": CREATED["conversation_id"],
-                "body": "Automated smoke test message — safe to ignore",
-            })
+            r = await call(
+                "send_conversation_message",
+                {
+                    "conversation_id": CREATED["conversation_id"],
+                    "body": "Automated smoke test message — safe to ignore",
+                },
+            )
             _ok("send_conversation_message → sent")
         except Exception as e:
             _fail("send_conversation_message", str(e))
@@ -380,9 +416,12 @@ async def run() -> None:
     # 27. mark_conversation_read
     if CREATED.get("conversation_id"):
         try:
-            r = await call("mark_conversation_read", {
-                "conversation_id": CREATED["conversation_id"],
-            })
+            r = await call(
+                "mark_conversation_read",
+                {
+                    "conversation_id": CREATED["conversation_id"],
+                },
+            )
             _ok("mark_conversation_read → done")
         except Exception as e:
             _fail("mark_conversation_read", str(e))
@@ -392,10 +431,13 @@ async def run() -> None:
     # 28. get_conversation_timeline
     if CREATED.get("conversation_id"):
         try:
-            r = await call("get_conversation_timeline", {
-                "conversation_id": CREATED["conversation_id"],
-                "limit": 5,
-            })
+            r = await call(
+                "get_conversation_timeline",
+                {
+                    "conversation_id": CREATED["conversation_id"],
+                    "limit": 5,
+                },
+            )
             _ok("get_conversation_timeline → done")
         except Exception as e:
             _fail("get_conversation_timeline", str(e))
@@ -405,11 +447,14 @@ async def run() -> None:
     # 29. update_conversation_variables
     if CREATED.get("conversation_id"):
         try:
-            r = await call("update_conversation_variables", {
-                "conversation_id": CREATED["conversation_id"],
-                "dynamic_variables": {"smoke_test": "true", "test_run": "2026-06-08"},
-                "replace": False,
-            })
+            r = await call(
+                "update_conversation_variables",
+                {
+                    "conversation_id": CREATED["conversation_id"],
+                    "dynamic_variables": {"smoke_test": "true", "test_run": "2026-06-08"},
+                    "replace": False,
+                },
+            )
             _ok("update_conversation_variables → done")
         except Exception as e:
             _fail("update_conversation_variables", str(e))
@@ -484,11 +529,14 @@ async def run() -> None:
     # Using a test number that won't connect to avoid charges.
     if CREATED.get("agent") and CREATED.get("number_id"):
         try:
-            r = await call("make_call", {
-                "agent_id": CREATED["agent"],
-                "to_number": "+12345678901",  # invalid number, will likely fail gracefully
-                "number_id": CREATED["number_id"],
-            })
+            r = await call(
+                "make_call",
+                {
+                    "agent_id": CREATED["agent"],
+                    "to_number": "+12345678901",  # invalid number, will likely fail gracefully
+                    "number_id": CREATED["number_id"],
+                },
+            )
             call_id = r.get("call_id", "")
             if call_id:
                 CREATED["live_call"] = call_id
@@ -525,12 +573,15 @@ async def run() -> None:
     # 39. create_campaign
     if CREATED.get("agent") and CREATED.get("number_id"):
         try:
-            r = await call("create_campaign", {
-                "name": f"smoke-camp-{UID}",
-                "agent_id": CREATED["agent"],
-                "phone_number_id": CREATED["number_id"],
-                "max_concurrent_calls": 1,
-            })
+            r = await call(
+                "create_campaign",
+                {
+                    "name": f"smoke-camp-{UID}",
+                    "agent_id": CREATED["agent"],
+                    "phone_number_id": CREATED["number_id"],
+                    "max_concurrent_calls": 1,
+                },
+            )
             camp_id = r.get("id", "")
             if camp_id:
                 CREATED["campaign"] = camp_id
@@ -578,9 +629,12 @@ async def run() -> None:
     # 44. unassign_number
     if CREATED.get("number_id"):
         try:
-            r = await call("unassign_number", {
-                "phone_number_id": CREATED["number_id"],
-            })
+            r = await call(
+                "unassign_number",
+                {
+                    "phone_number_id": CREATED["number_id"],
+                },
+            )
             _ok(f"unassign_number → status={r.get('status')}")
         except Exception as e:
             _fail("unassign_number", str(e))
@@ -592,7 +646,6 @@ async def run() -> None:
 
     headers = {"Authorization": f"Bearer {API_KEY}"}
     async with httpx.AsyncClient(base_url=BASE_URL, headers=headers) as api:
-
         if CREATED.get("webhook"):
             try:
                 r = await api.delete(f"/webhooks/{CREATED['webhook']}")
@@ -638,7 +691,7 @@ async def run() -> None:
     # ═══════════════════════════════════════════
     # SUMMARY
     # ═══════════════════════════════════════════
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     total = len(PASS) + len(FAIL)
     print(f"  {len(PASS)}/{total} tested, {len(FAIL)} failed")
     print("  Tools NOT tested: start_campaign (would dial real people)")

@@ -158,7 +158,7 @@ async def run() -> None:
         _fail("get_combined_analytics", str(e))
 
     # ── Summary ──
-    print(f"\n{'='*50}")
+    print(f"\n{'=' * 50}")
     total = len(PASS) + len(FAIL)
     print(f"  {len(PASS)}/{total} passed, {len(FAIL)} failed")
     if FAIL:
