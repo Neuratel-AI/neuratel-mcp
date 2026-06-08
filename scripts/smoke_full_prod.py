@@ -11,8 +11,7 @@ import asyncio
 import json
 import os
 import sys
-import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import httpx
 
@@ -21,7 +20,7 @@ if not API_KEY:
     sys.exit("NEURATEL_API_KEY env var required")
 
 BASE_URL = "https://api.neuratel.ai/v1"
-UID = datetime.now(timezone.utc).strftime("%m%d%H%M%S")
+UID = datetime.now(UTC).strftime("%m%d%H%M%S")
 PASS: list[str] = []
 FAIL: list[tuple[str, str]] = []
 CREATED: dict[str, str] = {}  # label -> id, for cleanup
@@ -286,7 +285,9 @@ async def run() -> None:
     # 19. dnc_get_settings
     try:
         r = await call("dnc_get_settings")
-        _ok(f"dnc_get_settings → protection={r.get('protection_enabled')}, auto_add={r.get('auto_add_inbound_optouts')}")
+        prot = r.get('protection_enabled')
+        auto = r.get('auto_add_inbound_optouts')
+        _ok(f"dnc_get_settings → protection={prot}, auto_add={auto}")
     except Exception as e:
         _fail("dnc_get_settings", str(e))
 
@@ -370,7 +371,7 @@ async def run() -> None:
                 "conversation_id": CREATED["conversation_id"],
                 "body": "Automated smoke test message — safe to ignore",
             })
-            _ok(f"send_conversation_message → sent")
+            _ok("send_conversation_message → sent")
         except Exception as e:
             _fail("send_conversation_message", str(e))
     else:
@@ -382,7 +383,7 @@ async def run() -> None:
             r = await call("mark_conversation_read", {
                 "conversation_id": CREATED["conversation_id"],
             })
-            _ok(f"mark_conversation_read → done")
+            _ok("mark_conversation_read → done")
         except Exception as e:
             _fail("mark_conversation_read", str(e))
     else:
@@ -395,7 +396,7 @@ async def run() -> None:
                 "conversation_id": CREATED["conversation_id"],
                 "limit": 5,
             })
-            _ok(f"get_conversation_timeline → done")
+            _ok("get_conversation_timeline → done")
         except Exception as e:
             _fail("get_conversation_timeline", str(e))
     else:
@@ -409,7 +410,7 @@ async def run() -> None:
                 "dynamic_variables": {"smoke_test": "true", "test_run": "2026-06-08"},
                 "replace": False,
             })
-            _ok(f"update_conversation_variables → done")
+            _ok("update_conversation_variables → done")
         except Exception as e:
             _fail("update_conversation_variables", str(e))
     else:
@@ -418,7 +419,7 @@ async def run() -> None:
     # 30. get_chat_analytics
     try:
         r = await call("get_chat_analytics")
-        _ok(f"get_chat_analytics → done")
+        _ok("get_chat_analytics → done")
     except Exception as e:
         _fail("get_chat_analytics", str(e))
 
@@ -430,7 +431,7 @@ async def run() -> None:
     # 31. get_combined_analytics
     try:
         r = await call("get_combined_analytics")
-        _ok(f"get_combined_analytics → done")
+        _ok("get_combined_analytics → done")
     except Exception as e:
         _fail("get_combined_analytics", str(e))
 
@@ -491,7 +492,8 @@ async def run() -> None:
             call_id = r.get("call_id", "")
             if call_id:
                 CREATED["live_call"] = call_id
-            _ok(f"make_call → call_id={call_id[:12] if call_id else 'none'}, success={r.get('success')}")
+            cid = call_id[:12] if call_id else "none"
+            _ok(f"make_call → call_id={cid}, success={r.get('success')}")
         except Exception as e:
             # Expected to fail with invalid number — still counts as tool tested
             _ok(f"make_call → raised (expected with test number): {str(e)[:80]}")
@@ -552,7 +554,7 @@ async def run() -> None:
     if CREATED.get("campaign"):
         try:
             r = await call("pause_campaign", {"campaign_id": CREATED["campaign"]})
-            _ok(f"pause_campaign → done (may raise if not started, that's OK)")
+            _ok("pause_campaign → done (may raise if not started, that's OK)")
         except Exception as e:
             _ok(f"pause_campaign → raised (expected if not started): {str(e)[:80]}")
     else:
@@ -562,7 +564,7 @@ async def run() -> None:
     if CREATED.get("campaign"):
         try:
             r = await call("stop_campaign", {"campaign_id": CREATED["campaign"]})
-            _ok(f"stop_campaign → done")
+            _ok("stop_campaign → done")
         except Exception as e:
             _ok(f"stop_campaign → raised: {str(e)[:80]}")
     else:
@@ -639,7 +641,7 @@ async def run() -> None:
     print(f"\n{'='*60}")
     total = len(PASS) + len(FAIL)
     print(f"  {len(PASS)}/{total} tested, {len(FAIL)} failed")
-    print(f"  Tools NOT tested: start_campaign (would dial real people)")
+    print("  Tools NOT tested: start_campaign (would dial real people)")
     if FAIL:
         print("\n  FAILURES:")
         for label, detail in FAIL:
