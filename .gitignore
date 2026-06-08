@@ -41,6 +41,9 @@ coverage.xml
 .DS_Store
 Thumbs.db
 
+# Internal smoke tests (hit live API — keep local only)
+scripts/smoke*
+
 # Logs
 *.log
 
