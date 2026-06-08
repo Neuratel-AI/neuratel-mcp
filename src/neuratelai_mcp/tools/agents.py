@@ -182,7 +182,7 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
         # (the platform default) if not explicitly set.
         brain: dict[str, Any] = {**body.get("brain", {})}
         brain["instructions"] = instructions
-        brain.setdefault("provider", brain_provider or "groq")
+        brain.setdefault("provider", brain_provider or "phantom")
         if brain_provider is not None:
             brain["provider"] = brain_provider
         if brain_model is not None:
@@ -193,7 +193,9 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
             brain["max_completion_tokens"] = max_tokens
         body["brain"] = brain
 
-        # Voice — only include if any voice param provided or config had voice section
+        # Voice — only include if any voice param provided or config had voice section.
+        # Provider is required by backend discriminated union — default to cartesia
+        # (the platform default) if not explicitly set.
         voice_params_set = any(
             p is not None for p in [voice_provider, voice_id, voice_model, voice_speed]
         )
@@ -207,9 +209,12 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
                 voice["model"] = voice_model
             if voice_speed is not None:
                 voice["speed"] = voice_speed
+            voice.setdefault("provider", "cartesia")
             body["voice"] = voice
 
-        # Transcriber — only include if any transcriber param provided or config had it
+        # Transcriber — only include if any transcriber param provided or config had it.
+        # Provider is required by backend discriminated union — default to soniox
+        # (the platform default) if not explicitly set.
         transcriber_params_set = any(
             p is not None for p in [transcriber_provider, transcriber_model, language]
         )
@@ -221,6 +226,7 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
                 transcriber["model"] = transcriber_model
             if language is not None:
                 transcriber["language"] = language
+            transcriber.setdefault("provider", "soniox")
             body["transcriber"] = transcriber
 
         # First message
@@ -446,10 +452,11 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
             brain_fields["max_completion_tokens"] = max_tokens
         if brain_fields:
             if "provider" not in brain_fields:
-                brain_fields["provider"] = "groq"
+                brain_fields["provider"] = "phantom"
             body["brain"] = {**body.get("brain", {}), **brain_fields}
 
-        # Voice — provider required when setting voice fields
+        # Voice — provider required when setting voice fields.
+        # Backend discriminated union requires provider — default to cartesia.
         voice_fields: dict[str, Any] = {}
         if voice_provider is not None:
             voice_fields["provider"] = voice_provider
@@ -460,9 +467,11 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
         if voice_speed is not None:
             voice_fields["speed"] = voice_speed
         if voice_fields:
+            voice_fields.setdefault("provider", "cartesia")
             body["voice"] = {**body.get("voice", {}), **voice_fields}
 
-        # Transcriber — provider required when setting transcriber fields
+        # Transcriber — provider required when setting transcriber fields.
+        # Backend discriminated union requires provider — default to soniox.
         transcriber_fields: dict[str, Any] = {}
         if transcriber_provider is not None:
             transcriber_fields["provider"] = transcriber_provider
@@ -471,6 +480,7 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
         if language is not None:
             transcriber_fields["language"] = language
         if transcriber_fields:
+            transcriber_fields.setdefault("provider", "soniox")
             body["transcriber"] = {**body.get("transcriber", {}), **transcriber_fields}
 
         # First message
