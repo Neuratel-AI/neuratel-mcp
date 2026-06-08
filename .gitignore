@@ -1,11 +1,49 @@
+# Python
 __pycache__/
-*.pyc
-*.pyo
-.venv/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
 dist/
-.env
-.DS_Store
-.mypy_cache/
-.ruff_cache/
-.pytest_cache/
+build/
+.venv/
+venv/
+env/
 .python-version
+
+# Type checking
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# Coverage
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temp
+*.tmp
+*.bak

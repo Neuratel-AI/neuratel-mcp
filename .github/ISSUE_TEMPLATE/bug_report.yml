@@ -1,0 +1,94 @@
+name: Bug Report
+description: Report a bug in this SDK or MCP server
+labels: ["needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a bug! Please fill out the sections below.
+
+        > ⚠️ **Generated code notice**: If the bug is in auto-generated type definitions (`_generated.py` / `_generated.ts`), do not hand-edit those files. The fix needs to come from the upstream OpenAPI spec. Please mention this in your description.
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Before filing
+      options:
+        - label: I have searched for duplicate or closed issues
+          required: true
+        - label: I have read the CONTRIBUTING.md
+          required: false
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug description
+      description: A clear description of what the bug is.
+      placeholder: "e.g., client.agents.list() raises AttributeError when API returns empty result"
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Minimal code snippet or sequence that triggers the bug.
+      placeholder: |
+        from neuratelai import NeuratelAI
+        client = NeuratelAI(api_key="...")
+        result = client.agents.list()
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What you expected to happen.
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: What actually happened (include error messages, stack traces).
+    validations:
+      required: true
+  - type: input
+    id: sdk_version
+    attributes:
+      label: SDK version
+      description: Which version of the package are you using?
+      placeholder: "e.g., 0.2.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: package
+    attributes:
+      label: Package
+      options:
+        - neuratelai (Python SDK)
+        - "@neuratelai/sdk" (Node SDK)
+        - neuratelai-mcp (MCP Server)
+    validations:
+      required: true
+  - type: dropdown
+    id: runtime
+    attributes:
+      label: Runtime / Transport
+      description: For MCP server issues, which transport are you using?
+      options:
+        - Python 3.12+
+        - Python 3.11
+        - Python 3.10
+        - Node.js 20+
+        - Node.js 18
+        - MCP / stdio
+        - MCP / HTTP
+        - MCP / SSE
+        - N/A
+    validations:
+      required: false
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Any other context — OS, virtual environment, proxy configuration, etc.
+    validations:
+      required: false

@@ -1,0 +1,61 @@
+name: Feature Request
+description: Suggest a new feature, resource, or improvement
+labels: ["needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for the suggestion! Please describe the feature you'd like to see.
+
+        > ⚠️ **Generated code notice**: If you need a new API method or type that exists in the Neuratel API but is missing from the SDK, the fix is to regenerate from the latest OpenAPI spec rather than hand-writing code. Mention this in your description.
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Before filing
+      options:
+        - label: I have searched for duplicate or closed issues
+          required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / Use case
+      description: What problem does this feature solve? What are you trying to do that you can't do today?
+      placeholder: "e.g., I need to manage DNC (Do Not Call) lists programmatically but the SDK doesn't expose this endpoint"
+    validations:
+      required: true
+  - type: textarea
+    id: proposed
+    attributes:
+      label: Proposed solution
+      description: How would you like this to work? API design suggestions welcome.
+      placeholder: |
+        client.dnc.list_entries(phone_number="+1234567890")
+        client.dnc.add_entry(phone_number="+1234567890", reason="user_request")
+    validations:
+      required: false
+  - type: dropdown
+    id: package
+    attributes:
+      label: Package
+      options:
+        - neuratelai (Python SDK)
+        - "@neuratelai/sdk" (Node SDK)
+        - neuratelai-mcp (MCP Server)
+        - All three
+    validations:
+      required: true
+  - type: checkboxes
+    id: non_api
+    attributes:
+      label: Is this about the Neuratel Platform API itself?
+      description: If yes, this should be reported to Neuratel support, not here.
+      options:
+        - label: No, this is about the SDK/MCP client code, not the backend API
+          required: true
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Links, screenshots, competitor examples, etc.
+    validations:
+      required: false

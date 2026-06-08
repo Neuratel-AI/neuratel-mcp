@@ -6,7 +6,7 @@
 
 Official MCP Server for [Neuratel Studio](https://neuratel.ai) — control your voice AI platform through natural language from Claude, Cursor, Windsurf, and any MCP-compatible assistant.
 
-28 hand-crafted tools. Every destructive operation carries an explicit cost warning.
+46 hand-crafted tools across 11 domains. Every destructive operation carries an explicit cost warning.
 
 ## Quick Start
 
@@ -38,7 +38,7 @@ Edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
 }
 ```
 
-Restart Claude Desktop. You'll see **neuratel** in the tools panel with 28 tools available.
+Restart Claude Desktop. You'll see **neuratel** in the tools panel with 46 tools available.
 
 ## Claude Code
 
@@ -85,14 +85,23 @@ Connect to `http://your-host:8000/mcp`.
 
 | Domain | Count | What you can do |
 |--------|-------|-----------------|
-| Agents | 6 | Create, inspect, update, duplicate, delete agents |
-| Calls | 5 | Place calls, read transcripts, monitor live, hang up |
-| Campaigns | 6 | Full campaign lifecycle — create through stop |
+| Agents | 8 | Create, list, inspect, update, delete, duplicate agents; list templates; get required variables |
+| Calls | 5 | Place calls, list/get calls, monitor live sessions, hang up |
+| Campaigns | 6 | Full campaign lifecycle — create, start, pause, stop |
+| Conversations | 8 | Unified inbox — list, get, send messages, timeline, analytics, variables |
+| DNC | 6 | Check, list, add, delete entries; get/update settings |
 | Numbers | 3 | List numbers, assign and unassign agents |
 | Knowledge Base | 4 | Add content from text or URL, attach to agent |
 | Billing | 2 | Check balance, view usage |
 | Webhooks | 2 | Create and list event subscriptions |
+| Analytics | 1 | Combined voice + chat dashboard KPIs |
+| Variables | 1 | System variables catalog for dynamic_variables validation |
 
 ## Requirements
 
-Python 3.11+ · `uv` recommended · [Full docs](https://docs.neuratel.ai/mcp/overview)
+Python 3.11+ · `uv` recommended
+
+## Links
+
+- [Documentation](https://docs.neuratel.ai/mcp/overview) · [Tools Reference](https://docs.neuratel.ai/mcp/tools) · [Changelog](https://github.com/Neuratel-AI/neuratel-mcp/releases)
+- [Contributing](https://github.com/Neuratel-AI/neuratel-mcp/blob/main/CONTRIBUTING.md) · [Security](https://github.com/Neuratel-AI/neuratel-mcp/blob/main/SECURITY.md) · [Code of Conduct](https://github.com/Neuratel-AI/neuratel-mcp/blob/main/CODE_OF_CONDUCT.md)

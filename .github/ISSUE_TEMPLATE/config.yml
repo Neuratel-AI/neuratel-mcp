@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Neuratel Platform API Support
+    url: https://api.neuratel.ai/support
+    about: Issues with the Neuratel API itself (not the SDK/MCP code) should be reported to platform support.
+  - name: Security Vulnerability
+    url: mailto:security@neuratel.ai
+    about: Please report security vulnerabilities via email. Do not file public issues for security problems.
+  - name: Question / Discussion
+    url: https://github.com/Neuratel-AI/neuratel-python/discussions
+    about: Ask questions and start discussions here.

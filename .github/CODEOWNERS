@@ -1,0 +1,5 @@
+# CODEOWNERS
+
+*       @Neuratel-AI
+
+/.github/workflows/                   @Neuratel-AI

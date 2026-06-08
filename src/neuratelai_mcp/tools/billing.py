@@ -39,9 +39,10 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
     async def get_usage(days: int = 30) -> dict[str, Any]:
         """Get usage summary for a time period.
 
-        Returns aggregate stats: how many calls were made, total minutes
-        consumed, and total amount billed. Useful for cost monitoring,
-        capacity planning, and usage reporting.
+        Returns aggregate stats: how many calls were made, total seconds
+        and minutes consumed, and total amount billed. Billing is
+        per-second, so ``total_seconds`` is the granular metric.
+        Useful for cost monitoring, capacity planning, and usage reporting.
 
         Args:
             days: Look-back period in days (default 30, max 365).
@@ -52,6 +53,7 @@ def register(mcp: FastMCP, client: httpx.AsyncClient) -> None:
         d = r.json()
         return {
             "call_count": d.get("call_count"),
+            "total_seconds": d.get("total_seconds"),
             "total_minutes": d.get("total_minutes"),
             "total_billed": d.get("total_billed"),
             "period_start": d.get("period_start"),
